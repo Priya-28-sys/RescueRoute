@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RescueRoute — Intelligent Emergency Resource and Rescue Coordinator</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Leaflet CSS for Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+<body>
+  <!-- Root Container -->
+  <div class="app-layout">
+    
+    <!-- Dark Navy Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              <circle cx="12" cy="12" r="10" stroke-width="1.8"/>
+              <path d="M12 6v6l4 2" stroke-width="2"/>
+            </svg>
+            <span class="live-pulse-dot"></span>
+          </div>
+          <div class="brand-text">
+            <h2>RescueRoute</h2>
+            <span class="tagline">Emergency AI Coordinator</span>
+          </div>
+        </div>
+        <button class="mobile-toggle" id="sidebarCloseBtn" aria-label="Close Sidebar">&times;</button>
+      </div>
+
+      <!-- Live DEFCON / Threat Status Indicator -->
+      <div class="threat-status-card">
+        <div class="threat-header">
+          <span class="threat-label">SYSTEM ALERT LEVEL</span>
+          <span class="threat-pill critical" id="systemAlertLevel">RED ALERT</span>
+        </div>
+        <div class="threat-details">
+          <div class="threat-metric">
+            <span class="metric-val" id="activeIncidentsCount">0</span>
+            <span class="metric-lbl">Active SOS</span>
+          </div>
+          <div class="threat-divider"></div>
+          <div class="threat-metric">
+            <span class="metric-val" id="criticalVictimsCount">0</span>
+            <span class="metric-lbl">At Risk</span>
+          </div>
+          <div class="threat-divider"></div>
+          <div class="threat-metric">
+            <span class="metric-val" id="unitsDeployedCount">0</span>
+            <span class="metric-lbl">Deployed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">COMMAND & CONTROL</div>
+        <a href="#dashboard" class="nav-item active" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Live Operations Map</span>
+          <span class="badge badge-emergency" id="badgeActiveIncidents">6</span>
+        </a>
+        <a href="#incidents" class="nav-item" data-tab="incidents">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span>Incidents & SOS Intake</span>
+          <span class="badge badge-teal" id="badgePendingSOS">2</span>
+        </a>
+        <a href="#routes" class="nav-item" data-tab="routes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          <span>Intelligent Safe Routing</span>
+          <span class="badge badge-subtle">AI</span>
+        </a>
+        <a href="#resources" class="nav-item" data-tab="resources">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span>Fleet & Unit Dispatch</span>
+        </a>
+        <a href="#shelters" class="nav-item" data-tab="shelters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>Evacuation Shelters</span>
+        </a>
+
+        <div class="nav-section-title">INTELLIGENCE & COMMS</div>
+        <a href="#broadcast" class="nav-item" data-tab="broadcast">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12h.01M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.2 19.1 19.1"></path></svg>
+          <span>Public Broadcast & Siren</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-tab="analytics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <span>Analytics & Audit Log</span>
+        </a>
+        <a href="#dsa" class="nav-item" data-tab="dsa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          <span>DSA Insights & Complexity</span>
+          <span class="badge badge-teal">Algorithms</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer / Simulation Controls -->
+      <div class="sidebar-footer">
+        <div class="sim-control-box">
+          <div class="sim-header">
+            <span>Simulation Clock</span>
+            <span class="sim-status-indicator active" id="simStatusPill">RUNNING</span>
+          </div>
+          <div class="sim-clock" id="liveClockDisplay">00:00:00</div>
+          <div class="sim-actions">
+            <button class="btn btn-sm btn-outline-teal" id="toggleSimBtn">
+              <span id="simIcon">⏸ Pause</span>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" id="triggerEventBtn" title="Inject a random emergency event">
+              ⚡ Inject SOS
+            </button>
+          </div>
+        </div>
+
+        <div class="siren-control-bar">
+          <button class="btn btn-emergency-siren" id="sirenSoundBtn">
+            <span class="siren-icon">🚨</span>
+            <span id="sirenBtnText">Test Emergency Siren</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      
+      <!-- Top Action & Status Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle-btn" id="sidebarOpenBtn" aria-label="Open Sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="breadcrumbs">
+            <span class="project-title">RescueRoute HQ</span>
+            <span class="crumb-separator">/</span>
+            <span class="current-view-title" id="pageTitle">Live Operations Map</span>
+          </div>
+        </div>
+
+        <div class="topbar-center">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="globalSearch" placeholder="Search incidents, vehicles, shelters, zones..." />
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Quick Actions -->
+          <button class="btn btn-teal" id="openSosModalBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>+ Report Incident</span>
+          </button>
+
+          <button class="btn btn-outline-teal" id="assignNearestBtn" title="Assign Nearest Available Responder via Dijkstra Shortest Path">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+            <span>⚡ Assign Nearest (Dijkstra)</span>
+          </button>
+
+          <button class="btn btn-outline" id="autoDispatchAllBtn" title="Run AI Priority Queue Auto-dispatch for pending SOS">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            <span>PQ Auto-Dispatch</span>
+          </button>
+
+          <div class="dropdown">
+            <button class="btn btn-icon" id="resetDataBtn" title="Reset Demo Data (LocalStorage)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <main class="content-container">
+
+        <!-- ================= TAB 1: DASHBOARD / OPERATIONS MAP ================= -->
+        <section class="tab-pane active" id="tab-dashboard">
+          
+          <!-- Key Metrics Banner (Requirement 1: Total, Critical, Available Responders, Resolved) -->
+          <div class="kpi-grid">
+            <!-- 1. Total Incidents -->
+            <div class="kpi-card border-blue">
+              <div class="kpi-icon bg-blue-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Total Incidents</span>
+                <h3 class="kpi-value text-blue" id="kpiTotalIncidents">7</h3>
+                <span class="kpi-trend text-muted" id="kpiTotalIncidentsSub">All city sectors</span>
+              </div>
+            </div>
+
+            <!-- 2. Critical Incidents -->
+            <div class="kpi-card border-emergency">
+              <div class="kpi-icon bg-emergency-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Critical Incidents</span>
+                <h3 class="kpi-value text-emergency" id="kpiCriticalIncidents">3</h3>
+                <span class="kpi-trend text-danger">⚠️ Priority Queue Rank #1</span>
+              </div>
+            </div>
+
+            <!-- 3. Available Responders -->
+            <div class="kpi-card border-teal">
+              <div class="kpi-icon bg-teal-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Available Responders</span>
+                <h3 class="kpi-value text-teal" id="kpiAvailableResponders">5</h3>
+                <span class="kpi-trend text-teal">Ready for Dijkstra dispatch</span>
+              </div>
+            </div>
+
+            <!-- 4. Resolved Incidents -->
+            <div class="kpi-card border-purple">
+              <div class="kpi-icon bg-purple-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Resolved Incidents</span>
+                <h3 class="kpi-value text-purple" id="kpiResolvedIncidents">1</h3>
+                <span class="kpi-trend text-purple">✓ Responders safely freed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Interactive Map + Live Dispatch Split Screen -->
+          <div class="operations-grid">
+            
+            <!-- Map Container -->
+            <div class="card map-card">
+              <div class="card-header map-header">
+                <div class="header-title-group">
+                  <h3>Intelligent Spatial Rescue Coordinator</h3>
+                  <span class="sub-subtitle">Real-time GPS tracking & hazard zone analysis</span>
+                </div>
+                
+                <!-- Map Layer Controls & Quick Filters -->
+                <div class="map-controls-toolbar">
+                  <div class="pill-group">
+                    <button class="pill active" data-map-filter="all">All Layers</button>
+                    <button class="pill" data-map-filter="incidents">Emergencies</button>
+                    <button class="pill" data-map-filter="units">Rescue Units</button>
+                    <button class="pill" data-map-filter="shelters">Shelters</button>
+                    <button class="pill" data-map-filter="hazards">Roadblocks</button>
+                  </div>
+                  <button class="btn btn-xs btn-outline" id="recenterMapBtn" title="Reset View">Center City</button>
+                </div>
+              </div>
+
+              <div class="map-wrapper">
+                <div id="rescueMap" class="leaflet-map-container"></div>
+                
+                <!-- Overlay Map Legend -->
+                <div class="map-legend">
+                  <div class="legend-header">OPERATIONAL LEGEND</div>
+                  <div class="legend-items">
+                    <div class="legend-item"><span class="legend-dot bg-danger pulse"></span> Critical Incident</div>
+                    <div class="legend-item"><span class="legend-dot bg-warning"></span> Moderate Incident</div>
+                    <div class="legend-item"><span class="legend-dot bg-teal"></span> Medical Ambulance</div>
+                    <div class="legend-item"><span class="legend-dot bg-orange"></span> Fire & Rescue Boat</div>
+                    <div class="legend-item"><span class="legend-dot bg-purple"></span> Safe Evac Shelter</div>
+                    <div class="legend-item"><span class="legend-line hazard"></span> Blocked/Flooded Route</div>
+                    <div class="legend-item"><span class="legend-line safe"></span> Optimized Safe Corridor</div>
+                  </div>
+                </div>
+
+                <!-- Floating Route Optimizer Banner on Map -->
+                <div class="map-floating-ai-banner" id="mapAiBanner">
+                  <div class="ai-banner-icon">🤖</div>
+                  <div class="ai-banner-content">
+                    <strong>RescueRoute AI Optimizer:</strong>
+                    <span id="mapAiMessage">Analyzing live traffic & flood depth. 3 corridors optimized for zero hazard exposure.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side Live Feed & AI Recommendations -->
+            <div class="side-feed-col">
+              
+              <!-- AI Quick Recommendations Card -->
+              <div class="card ai-recommendation-card">
+                <div class="card-header bg-navy-subtle">
+                  <div class="card-header-icon text-teal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  </div>
+                  <div>
+                    <h4>Smart Dispatch Recommendation</h4>
+                    <span class="sub-subtitle">AI-assisted distance & triage allocation</span>
+                  </div>
+                </div>
+                <div class="card-body" id="aiRecommendationsList">
+                  <!-- Injected via JavaScript -->
+                </div>
+              </div>
+
+              <!-- Real-time Activity Feed -->
+              <div class="card activity-feed-card">
+                <div class="card-header">
+                  <h4>Live Mission Log</h4>
+                  <span class="badge badge-teal">Live Stream</span>
+                </div>
+                <div class="card-body live-feed-scroll" id="liveActivityLog">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Bottom Summary Cards: Active Missions Overview -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div class="header-title-group">
+                <h3>Active Deployment Missions</h3>
+                <span class="sub-subtitle">Coordinated response units with live progress</span>
+              </div>
+              <button class="btn btn-sm btn-outline-teal" id="quickAddDemoMissionBtn">+ Trigger Drill Mission</button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="activeMissionsTable">
+                  <thead>
+                    <tr>
+                      <th>Mission ID</th>
+                      <th>Target Incident</th>
+                      <th>Assigned Unit</th>
+                      <th>Hazard Avoidance</th>
+                      <th>ETA</th>
+                      <th>Mission Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activeMissionsTableBody">
+                    <!-- Dynamic mission rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= TAB 2: INCIDENTS & SOS INTAKE ================= -->
+        <section class="tab-pane" id="tab-incidents">
+          <div class="section-topbar">
+            <div>
+              <h2>Incident Command & SOS Intake</h2>
+              <p class="section-desc">Log, triage, and coordinate emergency calls with automated severity scoring.</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-teal" id="reportIncidentTabBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Log New Incident
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Toolbar -->
+          <div class="filter-card">
+            <div class="filter-group">
+              <label>Filter by Severity:</label>
+              <select id="incidentSeverityFilter" class="form-control">
+                <option value="ALL">All Severities</option>
+                <option value="CRITICAL">Critical (Life Threatening)</option>
+                <option value="HIGH">High Severity</option>
+                <option value="MODERATE">Moderate</option>
+                <option value="LOW">Low / Advisory</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Filter by Type:</label>
+              <select id="incidentTypeFilter" class="form-control">
+                <option value="ALL">All Incident Types</option>
+                <option value="FLOOD">Flash Flood / Waterlogging</option>
+                <option value="FIRE">Structural Fire</option>
+                <option value="COLLAPSE">Building Collapse</option>
+                <option value="MEDICAL">Mass Medical Emergency</option>
+                <option value="CYCLONE">Severe Storm / Fallen Trees</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Status:</label>
+              <select id="incidentStatusFilter" class="form-control">
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending Dispatch</option>
+                <option value="DISPATCHED">Unit En Route</option>
+                <option value="ON_SCENE">Rescue In Progress</option>
+                <option value="RESOLVED">Resolved / Cleared</option>
+              </select>
+            </div>
+            <button class="btn btn-outline" id="clearIncidentFilters">Reset Filters</button>
+          </div>
+
+          <!-- Incident Cards List Grid -->
+          <div class="incident-cards-grid" id="incidentCardsGrid">
+            <!-- Dynamic incident cards -->
+          </div>
+        </section>
+
+        <!-- ================= TAB 3: INTELLIGENT SAFE ROUTING ================= -->
+        <section class="tab-pane" id="tab-routes">
+          <div class="section-topbar">
+            <div>
+              <h2>Intelligent Hazard-Aware Pathfinding</h2>
+              <p class="section-desc">RescueRoute Path Algorithm computes safest corridors avoiding active floods, roadblocks, and debris.</p>
+            </div>
+          </div>
+
+          <div class="routing-workbench-grid">
+            
+            <!-- Routing Parameters Form -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Route Calculation Engine</h4>
+              </div>
+              <div class="card-body">
+                <form id="routingCalculatorForm">
+                  <div class="form-group">
+                    <label>Starting Point (Dispatch Depot / Unit)</label>
+                    <select id="routeOriginSelect" class="form-control" required></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Destination (Incident or Shelter)</label>
+                    <select id="routeDestinationSelect" class="form-control" required></select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Vehicle Capability Profile</label>
+                    <select id="routeVehicleProfile" class="form-control">
+                      <option value="AMBULANCE">Advanced Ambulance (Requires paved road, avoid >0.3m water)</option>
+                      <option value="RESCUE_BOAT">Amphibious / NDRF Boat (Tolerates deep water, rivers)</option>
+                      <option value="HEAVY_TRUCK">Heavy Tactical Fire Engine (Can cross light debris)</option>
+                      <option value="DRONE">Emergency Medical Drone (Direct air line, weather-sensitive)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Routing Strategy</label>
+                    <div class="radio-toggle-group">
+                      <label class="radio-card">
+                        <input type="radio" name="routeAlgorithm" value="SAFE" checked>
+                        <div>
+                          <strong>🛡️ Safest Corridor (Zero Hazard Risk)</strong>
+                          <p>Bypasses all flooded streets & collapsing bridges even if slightly longer.</p>
+                        </div>
+                      </label>
+                      <label class="radio-card">
+                        <input type="radio" name="routeAlgorithm" value="FASTEST">
+                        <div>
+                          <strong>⚡ Direct / High Priority Rapid</strong>
+                          <p>Minimizes distance, highlights hazards that require tactical clearance.</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-teal w-100">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                    Calculate Optimal Path
+                  </button>
+                </form>
+
+                <!-- Roadblock Toggle Switchboard -->
+                <div class="hazard-toggles-section mt-4">
+                  <h5>Active Roadblocks & Sector Hazards</h5>
+                  <p class="text-muted text-sm">Toggle roadblocks on/off to observe real-time algorithmic re-routing:</p>
+                  <div class="hazard-toggles-list" id="hazardTogglesList">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Route Results & Comparison -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Route Analysis & Navigation Telemetry</h4>
+                <span class="badge badge-teal" id="routeStatusBadge">Ready</span>
+              </div>
+              <div class="card-body">
+                <div id="routeResultsContainer">
+                  <div class="empty-state-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                    <h4>Select Origin and Destination</h4>
+                    <p>Click "Calculate Optimal Path" to run the Dijkstra/A* simulated safe pathfinding engine.</p>
+                  </div>
+                </div>
+
+                <!-- Step-by-step Turn & Safety Directions -->
+                <div class="route-directions-box mt-3" id="routeDirectionsBox" style="display:none;">
+                  <h5>Turn-by-Turn Safe Corridor Waypoints</h5>
+                  <div class="waypoints-list" id="waypointsList"></div>
+                  
+                  <div class="dispatch-action-row mt-3">
+                    <button class="btn btn-teal" id="dispatchAlongCalculatedRouteBtn">
+                      🚀 Dispatch Unit on this Route
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= TAB 4: FLEET & UNIT DISPATCH ================= -->
+        <section class="tab-pane" id="tab-resources">
+          <div class="section-topbar">
+            <div>
+              <h2>Fleet Readiness & Field Units</h2>
+              <p class="section-desc">Monitor ambulances, fire engines, NDRF boats, and rescue squads with live equipment tracking.</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-outline" id="addNewUnitModalBtn">+ Register New Unit</button>
+            </div>
+          </div>
+
+          <!-- Quick Fleet Summary Cards -->
+          <div class="resource-stats-bar">
+            <div class="resource-stat-pill">
+              <span class="dot-status bg-teal"></span>
+              <span>Available Units: <strong id="statUnitsAvailable">12</strong></span>
+            </div>
+            <div class="resource-stat-pill">
+              <span class="dot-status bg-orange"></span>
+              <span>En Route: <strong id="statUnitsEnRoute">4</strong></span>
+            </div>
+            <div class="resource-stat-pill">
+              <span class="dot-status bg-danger"></span>
+              <span>On Scene Rescue: <strong id="statUnitsOnScene">2</strong></span>
+            </div>
+            <div class="resource-stat-pill">
+              <span class="dot-status bg-muted"></span>
+              <span>Maintenance / Restocking: <strong id="statUnitsMaintenance">1</strong></span>
+            </div>
+          </div>
+
+          <!-- Units Grid -->
+          <div class="units-grid" id="fleetUnitsGrid">
+            <!-- Dynamic fleet cards -->
+          </div>
+
+          <!-- Medical & Food Supply Inventory Tracker -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div class="header-title-group">
+                <h3>Emergency Stockpile & Supply Reserves</h3>
+                <span class="sub-subtitle">Inventory levels for disaster relief distribution</span>
+              </div>
+              <button class="btn btn-sm btn-outline-teal" id="restockAllSuppliesBtn">📦 Restock All Supplies</button>
+            </div>
+            <div class="card-body">
+              <div class="supplies-grid" id="suppliesGrid">
+                <!-- Supplies injected dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= TAB 5: EVACUATION SHELTERS ================= -->
+        <section class="tab-pane" id="tab-shelters">
+          <div class="section-topbar">
+            <div>
+              <h2>Evacuation Relief Camps & Shelters</h2>
+              <p class="section-desc">Real-time shelter capacity management, medical station status, and relief food reserves.</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-teal" id="evacuateVictimsModalBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                Assign Evacuees to Shelter
+              </button>
+            </div>
+          </div>
+
+          <div class="shelters-grid" id="sheltersGrid">
+            <!-- Dynamic shelter cards -->
+          </div>
+        </section>
+
+        <!-- ================= TAB 6: PUBLIC BROADCAST & SIREN ================= -->
+        <section class="tab-pane" id="tab-broadcast">
+          <div class="section-topbar">
+            <div>
+              <h2>Public Emergency Broadcast & Acoustic Alert System</h2>
+              <p class="section-desc">Broadcast high-priority emergency sirens, citizen SMS advisories, and public evacuation orders.</p>
+            </div>
+          </div>
+
+          <div class="broadcast-layout-grid">
+            
+            <!-- Broadcast Composer -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Publish Emergency Public Alert</h4>
+              </div>
+              <div class="card-body">
+                <form id="broadcastAlertForm">
+                  <div class="form-group">
+                    <label>Alert Category</label>
+                    <select id="broadcastCategory" class="form-control" required>
+                      <option value="FLASH_FLOOD">Flash Flood Emergency — Immediate High Ground Evacuation</option>
+                      <option value="CYCLONE_WARNING">Severe Cyclone / Gale Force Winds Advisory</option>
+                      <option value="BUILDING_SAFETY">Structural Failure / Exclusion Zone Declaration</option>
+                      <option value="BOIL_WATER">Drinking Water Contamination / Medical Precaution</option>
+                      <option value="ALL_CLEAR">All Clear / Resumption of Normal Activities</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Target Broadcast Zones</label>
+                    <div class="checkbox-row">
+                      <label><input type="checkbox" name="broadcastZone" value="Sector 1: Coastal Basin" checked> Coastal Basin</label>
+                      <label><input type="checkbox" name="broadcastZone" value="Sector 2: Metro Center" checked> Metro Center</label>
+                      <label><input type="checkbox" name="broadcastZone" value="Sector 3: River Bridge" checked> River Bridge</label>
+                      <label><input type="checkbox" name="broadcastZone" value="Sector 4: Industrial Hub" checked> Industrial Hub</label>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Alert Headline</label>
+                    <input type="text" id="broadcastHeadline" class="form-control" placeholder="e.g., URGENT: EVACUATE TO ELEVATED SHELTERS IMMEDIATELY" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Public Advisory Message</label>
+                    <textarea id="broadcastBody" class="form-control" rows="4" placeholder="Detailed citizen guidance, designated evacuation routes, and helpline numbers..." required></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Channels</label>
+                    <div class="channels-picker">
+                      <span class="channel-tag active">📱 Emergency Cell Broadcast</span>
+                      <span class="channel-tag active">🔊 Public Address Sirens</span>
+                      <span class="channel-tag active">📻 AM/FM Disaster Radio</span>
+                      <span class="channel-tag active">🌐 RescueRoute Citizen Portal</span>
+                    </div>
+                  </div>
+
+                  <div class="form-actions-split">
+                    <button type="submit" class="btn btn-emergency w-100">
+                      🚨 Transmit Public Emergency Alert
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Siren & Active Broadcasts Feed -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Acoustic Emergency Siren Synthesizer</h4>
+              </div>
+              <div class="card-body">
+                <div class="siren-synthesizer-box">
+                  <div class="siren-speaker-visual" id="sirenVisualizer">
+                    <div class="sound-wave"></div>
+                    <div class="sound-wave"></div>
+                    <div class="sound-wave"></div>
+                    <div class="speaker-icon">📢</div>
+                  </div>
+                  <div class="siren-controls">
+                    <button class="btn btn-danger btn-lg w-100" id="soundWailSirenBtn">
+                      🔊 Play Continuous Disaster Warning Siren
+                    </button>
+                    <button class="btn btn-warning btn-lg w-100 mt-2" id="soundBeepAlertBtn">
+                      ⚠️ Play High-Priority Beep Alert
+                    </button>
+                    <button class="btn btn-outline btn-lg w-100 mt-2" id="stopSoundSirenBtn">
+                      ⏹ Stop Siren Sound
+                    </button>
+                  </div>
+                  <p class="text-sm text-muted mt-2 text-center">
+                    Uses Web Audio API harmonic oscillators — completely self-contained, no external audio files needed.
+                  </p>
+                </div>
+
+                <div class="mt-4">
+                  <h5>Active Public Bulletins</h5>
+                  <div class="bulletins-stream" id="bulletinsStream">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= TAB 7: ANALYTICS & AUDIT LOG ================= -->
+        <section class="tab-pane" id="tab-analytics">
+          <div class="section-topbar">
+            <div>
+              <h2>Mission Analytics & Audit Log</h2>
+              <p class="section-desc">Performance metrics, response time telemetry, and college presentation report generator.</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-outline-teal" id="printReportBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print / Save PDF Report
+              </button>
+              <button class="btn btn-teal" id="exportAuditCsvBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export CSV Data
+              </button>
+            </div>
+          </div>
+
+          <!-- Charts Row (Rendered with Responsive SVG) -->
+          <div class="analytics-charts-grid">
+            <div class="card">
+              <div class="card-header">
+                <h4>Incident Distribution by Disaster Type</h4>
+              </div>
+              <div class="card-body">
+                <div class="svg-chart-container" id="chartIncidentTypes"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h4>Fleet Utilization & Deployment Status</h4>
+              </div>
+              <div class="card-body">
+                <div class="svg-chart-container" id="chartFleetStatus"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h4>Hourly Evacuation Rate & Rescue Trends</h4>
+              </div>
+              <div class="card-body">
+                <div class="svg-chart-container" id="chartRescueTimeline"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h4>Response Time Efficiency Benchmarks</h4>
+              </div>
+              <div class="card-body">
+                <div class="kpi-mini-grid">
+                  <div class="mini-kpi">
+                    <span class="label">Average Dispatch Lag</span>
+                    <span class="val text-teal">2.4 mins</span>
+                    <span class="sub">AI-automated</span>
+                  </div>
+                  <div class="mini-kpi">
+                    <span class="label">Average Safe Arrival ETA</span>
+                    <span class="val text-blue">9.1 mins</span>
+                    <span class="sub">Hazard avoidance on</span>
+                  </div>
+                  <div class="mini-kpi">
+                    <span class="label">Zero Hazard Breaches</span>
+                    <span class="val text-purple">100%</span>
+                    <span class="sub">Corridor compliance</span>
+                  </div>
+                  <div class="mini-kpi">
+                    <span class="label">Total Triage Saved</span>
+                    <span class="val text-emergency" id="analyticsTotalSaved">142</span>
+                    <span class="sub">Lives secured</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comprehensive Event Audit Log -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div class="header-title-group">
+                <h3>Incident Command Audit Trail</h3>
+                <span class="sub-subtitle">Immutable chronological ledger of automated and manual commands</span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Action Type</th>
+                      <th>Target Entity</th>
+                      <th>Command Details</th>
+                      <th>Operator / Agent</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auditLogTableBody">
+                    <!-- Dynamic logs -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= TAB 8: DSA INSIGHTS & COMPLEXITY ================= -->
+        <section class="tab-pane" id="tab-dsa">
+          <div class="section-topbar">
+            <div>
+              <h2>Data Structures & Algorithms (DSA) Architecture</h2>
+              <p class="section-desc">Comprehensive analysis of Binary Min-Heap, Priority Queue, Graph Adjacency representation, and Dijkstra's Algorithm.</p>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-teal" id="runDsaDemoTestBtn">
+                ⚡ Run Live Dijkstra Simulation
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Core DSA Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card border-blue">
+              <div class="kpi-icon bg-blue-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Algorithm</span>
+                <h3 class="kpi-value text-blue" style="font-size:1.15rem;">Dijkstra's Shortest Path</h3>
+                <span class="kpi-trend text-blue">O((V + E) log V) via Min-Heap</span>
+              </div>
+            </div>
+
+            <div class="kpi-card border-emergency">
+              <div class="kpi-icon bg-emergency-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Triage Queue</span>
+                <h3 class="kpi-value text-emergency" style="font-size:1.15rem;">Priority Queue (Heap)</h3>
+                <span class="kpi-trend text-danger">Critical (Level 4) first</span>
+              </div>
+            </div>
+
+            <div class="kpi-card border-teal">
+              <div class="kpi-icon bg-teal-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Graph Topology</span>
+                <h3 class="kpi-value text-teal" style="font-size:1.15rem;">Adjacency List</h3>
+                <span class="kpi-trend text-teal">10 Hubs • 13 Weighted Roads</span>
+              </div>
+            </div>
+
+            <div class="kpi-card border-purple">
+              <div class="kpi-icon bg-purple-soft">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Data Storage</span>
+                <h3 class="kpi-value text-purple" style="font-size:1.15rem;">Binary Min-Heap</h3>
+                <span class="kpi-trend text-purple">O(1) peek, O(log V) extract</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Live Algorithm Playground -->
+          <div class="routing-workbench-grid mb-3">
+            <!-- Dijkstra Tester Card -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Interactive Dijkstra Shortest-Path Tester</h4>
+                <span class="badge badge-teal">Live Algorithm</span>
+              </div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Start Location Node</label>
+                    <select id="dsaTestStartNode" class="form-control"></select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Destination Location Node</label>
+                    <select id="dsaTestEndNode" class="form-control"></select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="dsaTestAvoidHazards" checked />
+                    <span>Avoid Blocked Hazards & Flooded Roads (Safe Routing)</span>
+                  </label>
+                </div>
+                <button class="btn btn-teal w-100" id="dsaRunDijkstraBtn">
+                  🚀 Compute Shortest Path via Binary Min-Heap
+                </button>
+
+                <!-- Live Dijkstra Output -->
+                <div class="mt-3" id="dsaDijkstraResultBox" style="display:none;">
+                  <div class="card p-3 bg-light">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong id="dsaResultSummary">Distance: 0 km</strong>
+                      <span class="badge badge-teal" id="dsaResultVisitedBadge">0 Visited</span>
+                    </div>
+                    <div class="mt-2" style="font-size:0.85rem; color:#0f172a;" id="dsaResultPathDisplay">
+                      <strong>Path:</strong> 
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Priority Queue Live Triage Inspector -->
+            <div class="card">
+              <div class="card-header">
+                <h4>Emergency Priority Queue (Triage Inspector)</h4>
+                <span class="badge badge-emergency">Max-Heap Logic</span>
+              </div>
+              <div class="card-body">
+                <p class="text-sm text-muted">
+                  During emergencies, requests cannot be processed FIFO (First-In, First-Out). A Priority Queue ensures that <strong>CRITICAL</strong> incidents (e.g. cardiac arrest, active structural fire) are extracted first before <strong>MODERATE</strong> or <strong>LOW</strong> priority calls.
+                </p>
+                <div class="mt-2" id="dsaPriorityQueueList" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+                  <!-- Dynamic PQ items -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step-by-Step Relaxation Ledger Table -->
+          <div class="card mb-3">
+            <div class="card-header">
+              <div class="header-title-group">
+                <h3>Dijkstra Edge Relaxation Ledger (Step-by-Step)</h3>
+                <span class="sub-subtitle">Chronological record of priority updates in the Binary Min-Heap</span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Step #</th>
+                      <th>Source Vertex (u)</th>
+                      <th>Neighbor Vertex (v)</th>
+                      <th>Road Edge Weight</th>
+                      <th>Relaxation Status</th>
+                      <th>Explanation</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dsaRelaxationTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Educational Theory & Complexity Section -->
+          <div class="analytics-charts-grid">
+            <div class="card">
+              <div class="card-header">
+                <h4>Time & Space Complexity Reference</h4>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Component</th>
+                        <th>Time Complexity</th>
+                        <th>Space Complexity</th>
+                        <th>Purpose in RescueRoute</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Binary Min-Heap</strong></td>
+                        <td><code>O(log V)</code> Insert / Extract</td>
+                        <td><code>O(V)</code></td>
+                        <td>Powers Dijkstra's priority queue to fetch nearest node in logarithmic time.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Dijkstra's Algorithm</strong></td>
+                        <td><code>O((V + E) log V)</code></td>
+                        <td><code>O(V)</code></td>
+                        <td>Finds mathematically shortest path from responders to emergency scenes.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Priority Queue (Triage)</strong></td>
+                        <td><code>O(1)</code> Peek, <code>O(log N)</code> Push/Pop</td>
+                        <td><code>O(N)</code></td>
+                        <td>Guarantees life-threatening CRITICAL calls are assigned before minor alerts.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>City Graph (Adjacency List)</strong></td>
+                        <td><code>O(degree(v))</code> Neighbors</td>
+                        <td><code>O(V + E)</code></td>
+                        <td>Lightweight urban road model connecting 10 sectors with 13 weighted roads.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Road Network Graph Edge Details -->
+            <div class="card">
+              <div class="card-header">
+                <h4>City Road Network Topology (10 Hubs • 13 Roads)</h4>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:280px; overflow-y:auto;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Road Segment</th>
+                        <th>Connected Vertices</th>
+                        <th>Distance (Weight)</th>
+                        <th>Condition</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dsaRoadNetworkTableBody">
+                      <!-- Dynamic road rows -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Report SOS / New Incident Modal -->
+  <div class="modal-backdrop" id="modalSosIntake">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-emergency text-white">
+          <div class="modal-title-box">
+            <span class="modal-icon">🚨</span>
+            <div>
+              <h3>Report Emergency / SOS Intake</h3>
+              <p>Log a high-priority incident for automated triage and dispatch</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="closeSosModalBtn">&times;</button>
+        </div>
+
+        <form id="sosIntakeForm">
+          <div class="modal-body">
+            
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Caller / Citizen Name</label>
+                <input type="text" id="sosCallerName" class="form-control" placeholder="e.g. Ramesh Kumar / Citizen Watch" required />
+              </div>
+              <div class="form-group flex-1">
+                <label>Contact Phone</label>
+                <input type="tel" id="sosCallerPhone" class="form-control" placeholder="+91 98765 43210" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Incident Type</label>
+                <select id="sosType" class="form-control" required>
+                  <option value="FLOOD">Flash Flood / Waterlogging</option>
+                  <option value="FIRE">Structural Fire</option>
+                  <option value="COLLAPSE">Building / Roof Collapse</option>
+                  <option value="MEDICAL">Medical Emergency / Trapped Patients</option>
+                  <option value="CYCLONE">Severe Cyclone / Tree Uprooted</option>
+                  <option value="CHEMICAL">Hazardous Material Leak</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label>Triage Severity Level</label>
+                <select id="sosSeverity" class="form-control" required>
+                  <option value="CRITICAL">Critical — Immediate Threat to Life</option>
+                  <option value="HIGH">High — Severe Injury / Rapid Rising Threat</option>
+                  <option value="MODERATE">Moderate — Trapped but Stable</option>
+                  <option value="LOW">Low — Property Damage / Advisory</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Location / Landmark</label>
+              <input type="text" id="sosLocationName" class="form-control" placeholder="e.g. Velachery Main Road near Lake Bridge, Sector 2" required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Sector / Zone</label>
+                <select id="sosSector" class="form-control">
+                  <option value="Coastal Basin">Sector 1: Coastal Basin</option>
+                  <option value="Metro Center">Sector 2: Metro Center</option>
+                  <option value="River Bridge">Sector 3: River Bridge</option>
+                  <option value="Industrial Hub">Sector 4: Industrial Hub</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label>Estimated Victims Trapped / At Risk</label>
+                <input type="number" id="sosVictimsCount" class="form-control" min="1" max="500" value="4" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Special Resource Requirements</label>
+              <div class="checkbox-row">
+                <label><input type="checkbox" id="reqBoat"> Rescue Boat</label>
+                <label><input type="checkbox" id="reqAmbulance" checked> Ambulance (ICU)</label>
+                <label><input type="checkbox" id="reqFire"> Fire Pump</label>
+                <label><input type="checkbox" id="reqOxygen"> Oxygen Kits</label>
+                <label><input type="checkbox" id="reqCutter"> Hydraulic Cutters</label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Situation Description</label>
+              <textarea id="sosDescription" class="form-control" rows="3" placeholder="Provide details: water level, structural condition, elderly or infants present..." required></textarea>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelSosModalBtn">Cancel</button>
+            <button type="submit" class="btn btn-emergency">
+              🚨 Register & Trigger Auto-Triage
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Manual Dispatch Unit Modal -->
+  <div class="modal-backdrop" id="modalDispatchUnit">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-teal text-white">
+          <div class="modal-title-box">
+            <span class="modal-icon">🚑</span>
+            <div>
+              <h3>Dispatch Tactical Rescue Unit</h3>
+              <p id="dispatchModalSubtitle">Assign suitable unit to incident</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="closeDispatchModalBtn">&times;</button>
+        </div>
+
+        <form id="dispatchUnitForm">
+          <input type="hidden" id="dispatchTargetIncidentId" />
+          <div class="modal-body">
+            
+            <div class="card p-3 mb-3 bg-light" id="dispatchIncidentSummaryBox">
+              <!-- Summary of incident populated dynamically -->
+            </div>
+
+            <div class="form-group">
+              <label>Select Deployment Unit</label>
+              <select id="dispatchSelectUnit" class="form-control" required>
+                <!-- Available units listed dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Corridor Safety Preference</label>
+              <select id="dispatchSafetyMode" class="form-control">
+                <option value="SAFE">Safest Corridor (Strict Hazard Bypass)</option>
+                <option value="FAST">Direct Emergency Siren Rush (Tactical)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Mission Instructions / Team Dispatch Note</label>
+              <input type="text" id="dispatchMissionNote" class="form-control" placeholder="e.g. Priority triage for elderly victim on 1st floor" value="Proceed with caution through safe perimeter." />
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelDispatchModalBtn">Cancel</button>
+            <button type="submit" class="btn btn-teal">
+              🚀 Authorize & Dispatch Unit
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Assign Evacuees to Shelter Modal -->
+  <div class="modal-backdrop" id="modalAssignEvacuees">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-purple text-white">
+          <div class="modal-title-box">
+            <span class="modal-icon">🏕️</span>
+            <div>
+              <h3>Transfer Rescued Persons to Shelter</h3>
+              <p>Allocate shelter beds, emergency food rations, and medical checks</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="closeEvacModalBtn">&times;</button>
+        </div>
+
+        <form id="assignEvacueesForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Origin Incident / Source Area</label>
+              <select id="evacIncidentSource" class="form-control" required></select>
+            </div>
+
+            <div class="form-group">
+              <label>Destination Relief Shelter</label>
+              <select id="evacShelterSelect" class="form-control" required></select>
+            </div>
+
+            <div class="form-group">
+              <label>Number of Evacuees to Accommodate</label>
+              <input type="number" id="evacCount" class="form-control" min="1" max="200" value="12" required />
+            </div>
+
+            <div class="form-group">
+              <label>Special Relief Services Required</label>
+              <div class="checkbox-row">
+                <label><input type="checkbox" id="evacMedCheck" checked> Immediate First-Aid Triage</label>
+                <label><input type="checkbox" id="evacBabyFood" checked> Baby Food & Infant Care</label>
+                <label><input type="checkbox" id="evacWarmBlankets" checked> Dry Blankets & Clothing</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelEvacModalBtn">Cancel</button>
+            <button type="submit" class="btn btn-purple">Confirm Shelter Accommodation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Register Tactical Unit Modal -->
+  <div class="modal-backdrop" id="modalRegisterUnit">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-navy text-white" style="background-color: var(--navy-900); color: #fff;">
+          <div class="modal-title-box">
+            <span class="modal-icon">🚑</span>
+            <div>
+              <h3>Register New Rescue Fleet Unit</h3>
+              <p>Add ambulance, boat, fire tender, or drone to active command</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="closeRegisterUnitModalBtn">&times;</button>
+        </div>
+
+        <form id="registerUnitForm">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Unit Callsign / Name</label>
+                <input type="text" id="regUnitName" class="form-control" placeholder="e.g. NDRF Zodiac Boat Tango" required />
+              </div>
+              <div class="form-group flex-1">
+                <label>Unit Vehicle Type</label>
+                <select id="regUnitType" class="form-control" required>
+                  <option value="AMBULANCE">Advanced Ambulance (ALS)</option>
+                  <option value="RESCUE_BOAT">Inflatable Rescue Boat</option>
+                  <option value="HEAVY_TRUCK">Tactical Fire & Rescue Tender</option>
+                  <option value="DRONE">Emergency Medical Drone</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Operating Speed (km/h)</label>
+                <input type="number" id="regUnitSpeed" class="form-control" min="20" max="120" value="45" required />
+              </div>
+              <div class="form-group flex-1">
+                <label>Victim Capacity</label>
+                <input type="number" id="regUnitCapacity" class="form-control" min="0" max="25" value="4" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Station / Base Depot Location</label>
+              <input type="text" id="regUnitLocation" class="form-control" placeholder="e.g. Marina Beach Rescue Pier Station" required />
+            </div>
+
+            <div class="form-group">
+              <label>Crew Commander / Lead Officer</label>
+              <input type="text" id="regUnitCrew" class="form-control" placeholder="e.g. Sub-Inspector R. Anbarasu" required />
+            </div>
+
+            <div class="form-group">
+              <label>Special Equipment Onboard</label>
+              <input type="text" id="regUnitEquipment" class="form-control" placeholder="e.g. Defibrillator, Inflatable Vest x10, Spineboard" value="Trauma Kit, Oxygen, First Aid Pack" />
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelRegisterUnitModalBtn">Cancel</button>
+            <button type="submit" class="btn btn-teal">Register to Active Fleet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Leaflet JS for Map (runs even if offline or fallback will draw cleanly) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- RescueRoute Modules -->
+  <script src="js/data.js"></script>
+  <script src="js/dsa.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/routing.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/dispatcher.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
